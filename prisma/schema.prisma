@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 리포트 기간 타입 enum
+enum PeriodType {
+  WEEKLY
+  MONTHLY
+}
+
+// User (Google OAuth 사용자)
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique @db.VarChar(255)
+  name      String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamp()
+
+  posts   Post[]
+  reports Report[]
+
+  @@map("users")
+}
+
+// Post (직접 작성 글)
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String   @db.VarChar(255)
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @db.Timestamp()
+  updatedAt DateTime @updatedAt @db.Timestamp()
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postTags PostTag[]
+
+  @@map("posts")
+}
+
+// Tag
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+
+  postTags PostTag[]
+
+  @@map("tags")
+}
+
+// PostTag (게시글-태그 매핑)
+model PostTag {
+  id     Int @id @default(autoincrement())
+  postId Int
+  tagId  Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@map("post_tags")
+}
+
+// Report (AI 리포트)
+model Report {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  content    String     @db.Text
+  postCount  Int
+  periodType PeriodType
+  createdAt  DateTime   @default(now()) @db.Timestamp()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
