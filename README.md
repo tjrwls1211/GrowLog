@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌱 GrowLog
 
-## Getting Started
+**GrowLog**는 개발자가 공부한 내용을 글로 기록하고,  
+AI가 학습 내용을 분석해 **주간·월간 단위의 학습 리포트**를 제공하는 서비스입니다.
 
-First, run the development server:
+개발자는 평소에 기술 블로그를 잘 쓰지 않아도,  
+하루하루 작성한 글을 통해 자연스럽게 학습 내용을 정리하고  
+자신의 성장 방향을 한눈에 확인할 수 있습니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+GrowLog는 단순한 기록 도구가 아니라,  
+개발자가 꾸준히 학습하고 스스로를 돌아볼 수 있는  
+**개발 학습 리포트 플랫폼**을 목표로 합니다.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🧩 구현해야 하는 기능
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1️. 사용자 인증
+- Google OAuth 로그인
+- 로그인된 사용자만 기록, 분석, 리포트 기능 접근 가능
 
-## Learn More
+### 2️. 학습 기록 (Post)
+- 제목 / 내용(Markdown) / 태그 입력 후 저장
+- 게시글 생성, 수정, 조회 기능
+- 작성 일시, 수정 일시 자동 저장
 
-To learn more about Next.js, take a look at the following resources:
+### 3️. 태그 관리
+- 게시글마다 여러 태그 추가 가능 (N:N 관계)
+- 태그 중복 생성 방지
+- 태그별 학습 비율 통계 제공
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4️. 통계 및 분석
+- 태그별 학습 비율 시각화 (Chart.js)
+- 요일/시간대별 학습 패턴 분석
+- 월간 요약 (총 학습 수, 주요 태그 등)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 5️. AI 리포트
+- 월간 학습 데이터를 기반으로 GPT API를 활용한 자동 요약 리포트 제공
+- “이번 달 학습 경향 / 성장 포인트 / 다음 학습 방향” 제안
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 6️. 대시보드
+- 이번 달 학습량, 태그 비율, 인기 태그 한눈에 보기
+- 최근 작성 글 목록 표시
