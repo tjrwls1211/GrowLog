@@ -10,7 +10,7 @@ tone_instructions: >
 
 reviews:
   profile: balanced
-  high_level_summary: true
+  high_level_summary: false
   changed_files_summary: false
   sequence_diagrams: false
   request_changes_workflow: false
@@ -22,7 +22,6 @@ reviews:
   suggested_reviewers: false
   auto_assign_reviewers: false
   poem: false
-
   path_instructions:
     - path: src/app/**
       instructions: |
@@ -30,7 +29,6 @@ reviews:
         2. 페이지 구조, 데이터 fetch, API 라우팅이 효율적인지 검토해주세요.
         3. 불필요한 리렌더링, 에러 핸들링 누락이 없는지 확인해주세요.
         4. SEO 설정(title, description 등)이 적절히 포함되어 있는지 점검해주세요.
-
     - path: src/components/**
       instructions: |
         1. 컴포넌트가 단일 책임 원칙에 맞게 분리되어 있는지 확인해주세요.
