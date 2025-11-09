@@ -9,7 +9,7 @@ tone_instructions: >
   4. 필요 시 예시 코드나 레퍼런스를 함께 제공합니다.
 
 reviews:
-  profile: balanced
+  profile: chill
   high_level_summary: false
   changed_files_summary: false
   sequence_diagrams: false
