@@ -18,15 +18,51 @@ enum PeriodType {
 
 // User (Google OAuth 사용자)
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique @db.VarChar(255)
-  name      String?  @db.VarChar(255)
-  createdAt DateTime @default(now()) @db.Timestamp()
+  id            Int       @id @default(autoincrement())
+  email         String    @unique @db.VarChar(255)
+  name          String?   @db.VarChar(255)
+  image         String?   @db.Text
+  createdAt     DateTime  @default(now()) @db.Timestamp()
 
-  posts   Post[]
-  reports Report[]
+  posts    Post[]
+  reports  Report[]
+  accounts Account[]
+  sessions Session[]
 
   @@map("users")
+}
+
+// NextAuth Account (OAuth provider 정보)
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String  @db.VarChar(255)
+  provider          String  @db.VarChar(255)
+  providerAccountId String  @db.VarChar(255)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(255)
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth Session (로그인 세션)
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique @db.VarChar(255)
+  userId       Int
+  expires      DateTime @db.Timestamp()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 // Post (직접 작성 글)
