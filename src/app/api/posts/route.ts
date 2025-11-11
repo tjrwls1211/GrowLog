@@ -3,6 +3,33 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+
+    const posts = await prisma.post.findMany({
+      where: session?.user
+        ? {
+            OR: [
+              { isPublic: true },
+              { userId: session.user.id },
+            ],
+          }
+        : { isPublic: true },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return NextResponse.json(posts, { status: 200 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, content } = body
+    const { title, content, isPublic = false } = body
 
     if (!title) {
       return NextResponse.json(
@@ -34,6 +61,7 @@ export async function POST(request: Request) {
       data: {
         title,
         content,
+        isPublic,
         userId: session.user.id,
       },
     })
