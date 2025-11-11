@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth-utils";
 import Logo from "@/components/Logo";
 
 export default async function Header() {
-  const session = await getSession();
+  const session = await getSession().catch(() => null);
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--background)]/70 backdrop-blur border-b border-[var(--color-border)]">

@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import Tag from "@/components/ui/Tag";
 
 export default async function Home() {
-  const session = await getSession();
+  const session = await getSession().catch(() => null);
 
   return (
     <div className="space-y-10">
