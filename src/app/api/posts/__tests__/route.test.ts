@@ -132,6 +132,35 @@ describe('POST /api/posts', () => {
     expect(data).toHaveProperty('error')
     expect(data.error).toBe('로그인이 필요합니다.')
   })
+
+  it('비공개 글을 작성할 수 있어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const request = new Request('http://localhost:3000/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '비공개 글',
+        content: '비공개 내용',
+        isPublic: false,
+      }),
+    })
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(data.isPublic).toBe(false)
+  })
 })
 
 describe('GET /api/posts', () => {
