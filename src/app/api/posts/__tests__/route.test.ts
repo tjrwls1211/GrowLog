@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { POST } from '../route'
+import { POST, GET } from '../route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 
@@ -52,6 +52,7 @@ describe('POST /api/posts', () => {
     expect(data.title).toBe('테스트 제목')
     expect(data.content).toBe('테스트 내용입니다.')
     expect(data.userId).toBe(testUser.id)
+    expect(data.isPublic).toBe(false)
     expect(data).toHaveProperty('createdAt')
     expect(data).toHaveProperty('updatedAt')
   })
@@ -130,5 +131,123 @@ describe('POST /api/posts', () => {
     expect(response.status).toBe(401)
     expect(data).toHaveProperty('error')
     expect(data.error).toBe('로그인이 필요합니다.')
+  })
+})
+
+describe('GET /api/posts', () => {
+  it('전체 글 목록을 조회할 수 있어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    await prisma.post.createMany({
+      data: [
+        { title: '글 1', content: '내용 1', userId: testUser.id },
+        { title: '글 2', content: '내용 2', userId: testUser.id },
+        { title: '글 3', content: '내용 3', userId: testUser.id },
+      ],
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(Array.isArray(data)).toBe(true)
+    expect(data).toHaveLength(3)
+  })
+
+  it('최신순으로 정렬되어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    const post1 = await prisma.post.create({
+      data: { title: '첫 번째 글', content: '내용', userId: testUser.id },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 10))
+
+    const post2 = await prisma.post.create({
+      data: { title: '두 번째 글', content: '내용', userId: testUser.id },
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data[0].id).toBe(post2.id)
+    expect(data[1].id).toBe(post1.id)
+  })
+
+  it('공개 글만 조회할 수 있어야 한다 (로그인하지 않은 경우)', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    await prisma.post.createMany({
+      data: [
+        { title: '공개 글', content: '내용', userId: testUser.id, isPublic: true },
+        { title: '비공개 글', content: '내용', userId: testUser.id, isPublic: false },
+      ],
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue(null)
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toHaveLength(1)
+    expect(data[0].title).toBe('공개 글')
+  })
+
+  it('로그인한 사용자는 자신의 비공개 글도 조회할 수 있어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    const otherUser = await prisma.user.create({
+      data: {
+        email: 'other@example.com',
+        name: '다른 유저',
+      },
+    })
+
+    await prisma.post.createMany({
+      data: [
+        { title: '내 공개 글', content: '내용', userId: testUser.id, isPublic: true },
+        { title: '내 비공개 글', content: '내용', userId: testUser.id, isPublic: false },
+        { title: '다른 사람 공개 글', content: '내용', userId: otherUser.id, isPublic: true },
+        { title: '다른 사람 비공개 글', content: '내용', userId: otherUser.id, isPublic: false },
+      ],
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toHaveLength(3)
+
+    const titles = data.map((post: any) => post.title)
+    expect(titles).toContain('내 공개 글')
+    expect(titles).toContain('내 비공개 글')
+    expect(titles).toContain('다른 사람 공개 글')
+    expect(titles).not.toContain('다른 사람 비공개 글')
   })
 })
