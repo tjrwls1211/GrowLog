@@ -20,6 +20,7 @@ enum PeriodType {
 model User {
   id            Int       @id @default(autoincrement())
   email         String    @unique @db.VarChar(255)
+  emailVerified DateTime? @db.Timestamp()
   name          String?   @db.VarChar(255)
   image         String?   @db.Text
   createdAt     DateTime  @default(now()) @db.Timestamp()
