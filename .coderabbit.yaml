@@ -26,6 +26,14 @@ reviews:
   incremental_review_enabled: true
   review_status: true
 
+  base_branches:
+    - main
+    - develop
+    - feature/*
+    - feat/*
+    - hotfix/*
+    - release/*
+
   path_instructions:
     - path: src/app/**
       instructions: |
