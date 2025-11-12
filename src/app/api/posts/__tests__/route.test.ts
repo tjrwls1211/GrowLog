@@ -174,9 +174,9 @@ describe('GET /api/posts', () => {
 
     await prisma.post.createMany({
       data: [
-        { title: '글 1', content: '내용 1', userId: testUser.id },
-        { title: '글 2', content: '내용 2', userId: testUser.id },
-        { title: '글 3', content: '내용 3', userId: testUser.id },
+        { title: '글 1', content: '내용 1', userId: testUser.id, isPublic: true },
+        { title: '글 2', content: '내용 2', userId: testUser.id, isPublic: true },
+        { title: '글 3', content: '내용 3', userId: testUser.id, isPublic: true },
       ],
     })
 
@@ -197,13 +197,13 @@ describe('GET /api/posts', () => {
     })
 
     const post1 = await prisma.post.create({
-      data: { title: '첫 번째 글', content: '내용', userId: testUser.id },
+      data: { title: '첫 번째 글', content: '내용', userId: testUser.id, isPublic: true },
     })
 
     await new Promise(resolve => setTimeout(resolve, 10))
 
     const post2 = await prisma.post.create({
-      data: { title: '두 번째 글', content: '내용', userId: testUser.id },
+      data: { title: '두 번째 글', content: '내용', userId: testUser.id, isPublic: true },
     })
 
     const response = await GET()
