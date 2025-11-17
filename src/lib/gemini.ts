@@ -10,7 +10,7 @@ function getGeminiClient() {
 interface Post {
   id: number
   title: string
-  summary: string
+  summary: string | null
   createdAt: Date
   postTags: {
     tag: {
@@ -69,7 +69,7 @@ function buildPrompt(posts: Post[], tagStats: TagStat[]): string {
 
   const postSummaries = posts
     .slice(0, 5)
-    .map((p) => `- ${p.title}: ${p.summary}`)
+    .map((p) => `- ${p.title}: ${p.summary || '요약 없음'}`)
     .join('\n')
 
   return `
