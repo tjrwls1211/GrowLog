@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { POST } from '../route'
+import { GET, POST } from '../route'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 
@@ -150,5 +150,140 @@ describe('POST /api/reports', () => {
 
     expect(response.status).toBe(201)
     expect(data.postCount).toBe(1)
+  })
+})
+
+describe('GET /api/reports', () => {
+  it('로그인한 사용자의 리포트 목록을 조회할 수 있어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    await prisma.report.createMany({
+      data: [
+        {
+          userId: testUser.id,
+          content: '리포트 1',
+          postCount: 5,
+          periodType: 'MONTHLY',
+        },
+        {
+          userId: testUser.id,
+          content: '리포트 2',
+          postCount: 3,
+          periodType: 'MONTHLY',
+        },
+      ],
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(Array.isArray(data)).toBe(true)
+    expect(data).toHaveLength(2)
+  })
+
+  it('최신순으로 정렬되어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    const report1 = await prisma.report.create({
+      data: {
+        userId: testUser.id,
+        content: '첫 번째 리포트',
+        postCount: 5,
+        periodType: 'MONTHLY',
+      },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 10))
+
+    const report2 = await prisma.report.create({
+      data: {
+        userId: testUser.id,
+        content: '두 번째 리포트',
+        postCount: 3,
+        periodType: 'MONTHLY',
+      },
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data[0].id).toBe(report2.id)
+    expect(data[1].id).toBe(report1.id)
+  })
+
+  it('본인의 리포트만 조회할 수 있어야 한다', async () => {
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    const otherUser = await prisma.user.create({
+      data: {
+        email: 'other@example.com',
+        name: '다른 유저',
+      },
+    })
+
+    await prisma.report.create({
+      data: {
+        userId: testUser.id,
+        content: '내 리포트',
+        postCount: 5,
+        periodType: 'MONTHLY',
+      },
+    })
+
+    await prisma.report.create({
+      data: {
+        userId: otherUser.id,
+        content: '다른 사람 리포트',
+        postCount: 3,
+        periodType: 'MONTHLY',
+      },
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toHaveLength(1)
+    expect(data[0].content).toBe('내 리포트')
+  })
+
+  it('로그인하지 않은 경우 401 에러를 반환해야 한다', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue(null)
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(data).toHaveProperty('error')
+    expect(data.error).toBe('로그인이 필요합니다.')
   })
 })
