@@ -29,8 +29,8 @@ export default async function DashboardPage() {
   })
 
   const totalPosts = posts.length
-  const publicPosts = posts.filter((p) => p.isPublic).length
-  const privatePosts = posts.filter((p) => !p.isPublic).length
+  const publicPosts = posts.filter((p: { isPublic: boolean }) => p.isPublic).length
+  const privatePosts = posts.filter((p: { isPublic: boolean }) => !p.isPublic).length
 
   const tagCounts = new Map<string, number>()
   posts.forEach((post) => {
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const recentPosts = posts.filter((p) => p.createdAt >= sevenDaysAgo)
+  const recentPosts = posts.filter((p: { createdAt: Date }) => p.createdAt >= sevenDaysAgo)
 
   return (
     <div className="mx-auto max-w-6xl py-12 px-6">
