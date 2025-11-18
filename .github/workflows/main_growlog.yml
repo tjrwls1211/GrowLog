@@ -36,7 +36,7 @@ jobs:
           npm run build
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip .next node_modules package.json package-lock.json prisma public
+        run: zip -r release.zip .next node_modules package.json package-lock.json next.config.ts prisma public
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
