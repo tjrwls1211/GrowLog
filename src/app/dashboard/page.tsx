@@ -33,8 +33,8 @@ export default async function DashboardPage() {
   const privatePosts = posts.filter((p: { isPublic: boolean }) => !p.isPublic).length
 
   const tagCounts = new Map<string, number>()
-  posts.forEach((post) => {
-    post.postTags.forEach((pt) => {
+  posts.forEach((post: { postTags: { tag: { name: string } }[] }) => {
+    post.postTags.forEach((pt: { tag: { name: string } }) => {
       const count = tagCounts.get(pt.tag.name) || 0
       tagCounts.set(pt.tag.name, count + 1)
     })
