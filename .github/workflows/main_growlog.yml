@@ -35,8 +35,15 @@ jobs:
           npx prisma generate
           npm run build
 
+      - name: Prepare standalone deployment
+        run: |
+          cp -r .next/standalone ./deploy
+          cp -r .next/static ./deploy/.next/static
+          cp -r public ./deploy/public
+          cp -r prisma ./deploy/prisma
+
       - name: Zip artifact for deployment
-        run: zip -r release.zip .next node_modules package.json package-lock.json next.config.ts prisma public
+        run: cd deploy && zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
