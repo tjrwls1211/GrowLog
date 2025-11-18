@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const session = await getSession().catch(() => null)
 

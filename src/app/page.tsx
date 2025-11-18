@@ -5,6 +5,8 @@ import Tag from "@/components/ui/Tag";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 type RecentPost = Prisma.PostGetPayload<{
   include: { postTags: { include: { tag: true } } };
 }>;

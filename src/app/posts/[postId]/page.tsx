@@ -7,6 +7,8 @@ import Tag from '@/components/ui/Tag'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import DeletePostButton from '@/components/DeletePostButton'
 
+export const dynamic = 'force-dynamic';
+
 type PostDetailPageProps = {
   params: Promise<{
     postId: string

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth-utils'
 import PostEditor from '@/app/posts/new/PostEditor'
 
+export const dynamic = 'force-dynamic';
+
 type EditPostPageProps = {
   params: Promise<{
     postId: string
