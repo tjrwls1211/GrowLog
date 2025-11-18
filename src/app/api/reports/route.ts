@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { generateMonthlyReport } from '@/lib/gemini'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function GET() {
   try {
@@ -39,6 +40,18 @@ export async function POST() {
       return NextResponse.json(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
+      )
+    }
+
+    const { success, remaining, resetTime } = checkRateLimit(session.user.id)
+    if (!success) {
+      const resetDate = new Date(resetTime)
+      return NextResponse.json(
+        {
+          error: '요청 한도를 초과했습니다.',
+          resetTime: resetDate.toISOString(),
+        },
+        { status: 429 }
       )
     }
 
