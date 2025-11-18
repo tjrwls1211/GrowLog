@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 
 export async function GET(
   request: Request,
-  { params }: { params: { reportId: string } }
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -16,7 +16,8 @@ export async function GET(
       )
     }
 
-    const reportId = parseInt(params.reportId, 10)
+    const { reportId: reportIdStr } = await params
+    const reportId = parseInt(reportIdStr, 10)
 
     if (isNaN(reportId)) {
       return NextResponse.json(
@@ -56,7 +57,7 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { reportId: string } }
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -67,7 +68,8 @@ export async function DELETE(
       )
     }
 
-    const reportId = parseInt(params.reportId, 10)
+    const { reportId: reportIdStr } = await params
+    const reportId = parseInt(reportIdStr, 10)
 
     if (isNaN(reportId)) {
       return NextResponse.json(
