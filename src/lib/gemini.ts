@@ -153,7 +153,7 @@ export async function generatePostSummary(
 제목: ${title}
 내용: ${content}
 
-핵심 내용과 배운 점을 중심으로 간단명료하게 요약해주세요.
+핵심 내용과 배운 점을 중심으로 간단명료하게 요약해주세요. 마크다운 형식은 사용하지 마세요.
     `.trim()
 
     const summaryPromise = ai.models.generateContent({
