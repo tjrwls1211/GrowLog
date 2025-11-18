@@ -156,7 +156,7 @@ export default async function DashboardPage() {
 
           {recentPosts.length > 0 ? (
             <div className="space-y-3">
-              {recentPosts.slice(0, 5).map((post) => (
+              {recentPosts.slice(0, 5).map((post: { id: number; title: string; createdAt: Date; isPublic: boolean }) => (
                 <Link key={post.id} href={`/posts/${post.id}`}>
                   <Card className="p-4 hover:shadow-md transition cursor-pointer">
                     <div className="flex items-start justify-between">
@@ -248,7 +248,7 @@ export default async function DashboardPage() {
 
         {posts.length > 0 ? (
           <div className="space-y-3">
-            {posts.slice(0, 10).map((post) => (
+            {posts.slice(0, 10).map((post: { id: number; title: string; summary: string | null; createdAt: Date; isPublic: boolean; postTags: { id: number; tag: { name: string } }[] }) => (
               <Link key={post.id} href={`/posts/${post.id}`}>
                 <Card className="p-4 hover:shadow-md transition cursor-pointer">
                   <div className="flex items-start justify-between mb-2">
@@ -270,7 +270,7 @@ export default async function DashboardPage() {
                       )}
                       {post.postTags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {post.postTags.slice(0, 3).map((pt) => (
+                          {post.postTags.slice(0, 3).map((pt: { id: number; tag: { name: string } }) => (
                             <Tag
                               key={pt.id}
                               className="bg-[var(--primary)]/10 text-[var(--primary)] text-xs"
