@@ -1,0 +1,80 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { generatePostSummary } from '@/lib/gemini'
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+
+    const posts = await prisma.post.findMany({
+      where: session?.user
+        ? {
+            OR: [
+              { isPublic: true },
+              { userId: session.user.id },
+            ],
+          }
+        : { isPublic: true },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return NextResponse.json(posts, { status: 200 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { title, content, isPublic = false } = body
+
+    if (!title) {
+      return NextResponse.json(
+        { error: '제목은 필수입니다.' },
+        { status: 400 }
+      )
+    }
+
+    if (!content) {
+      return NextResponse.json(
+        { error: '내용은 필수입니다.' },
+        { status: 400 }
+      )
+    }
+
+    const summary = await generatePostSummary(title, content)
+
+    const post = await prisma.post.create({
+      data: {
+        title,
+        content,
+        summary,
+        isPublic,
+        userId: session.user.id,
+      },
+    })
+
+    return NextResponse.json(post, { status: 201 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}

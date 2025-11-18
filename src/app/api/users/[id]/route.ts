@@ -28,7 +28,6 @@ export async function GET(
 
     return NextResponse.json(user, { status: 200 })
   } catch (error) {
-    console.error('User 조회 에러:', error)
     return NextResponse.json(
       { error: '사용자 조회에 실패했습니다.' },
       { status: 500 }
