@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth-utils'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import DeletePostButton from '@/components/DeletePostButton'
 
 type PostDetailPageProps = {
   params: Promise<{
@@ -87,12 +88,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
             >
               수정
             </Link>
-            <button
-              type="button"
-              className="btn btn-outline btn--sm text-red-600 border-red-600 hover:bg-red-50"
-            >
-              삭제
-            </button>
+            <DeletePostButton postId={post.id} />
           </div>
         )}
       </div>
