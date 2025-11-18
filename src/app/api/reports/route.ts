@@ -43,7 +43,7 @@ export async function POST() {
       )
     }
 
-    const { success, remaining, resetTime } = checkRateLimit(session.user.id)
+    const { success, resetTime } = checkRateLimit(session.user.id)
     if (!success) {
       const resetDate = new Date(resetTime)
       return NextResponse.json(
