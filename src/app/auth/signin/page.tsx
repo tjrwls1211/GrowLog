@@ -1,8 +1,13 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
+import { useEffect } from 'react'
 
 export default function SignInPage() {
+  useEffect(() => {
+    signIn('google', { callbackUrl: '/' })
+  }, [])
+
   return (
     <div style={{
       display: 'flex',
@@ -12,21 +17,7 @@ export default function SignInPage() {
       minHeight: '100vh',
       gap: '20px'
     }}>
-      <h1>GrowLog 로그인</h1>
-      <button
-        onClick={() => signIn('google')}
-        style={{
-          padding: '12px 24px',
-          fontSize: '16px',
-          backgroundColor: '#4285f4',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Google로 로그인
-      </button>
+      <p>Google 로그인으로 이동 중...</p>
     </div>
   )
 }

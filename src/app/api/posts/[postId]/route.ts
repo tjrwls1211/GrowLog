@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { generatePostSummary } from '@/lib/gemini'
 
 export async function GET(
   request: Request,
-  { params }: { params: { postId: string } }
+  context: { params: Promise<{ postId: string }> }
 ) {
   try {
-    const postId = parseInt(params.postId)
+    const { postId: postIdStr } = await context.params
+    const postId = parseInt(postIdStr)
 
     if (isNaN(postId)) {
       return NextResponse.json(
@@ -49,7 +51,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { postId: string } }
+  context: { params: Promise<{ postId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -60,7 +62,8 @@ export async function PUT(
       )
     }
 
-    const postId = parseInt(params.postId)
+    const { postId: postIdStr } = await context.params
+    const postId = parseInt(postIdStr)
 
     if (isNaN(postId)) {
       return NextResponse.json(
@@ -104,11 +107,14 @@ export async function PUT(
       )
     }
 
+    const summary = await generatePostSummary(title, content)
+
     const updatedPost = await prisma.post.update({
       where: { id: postId },
       data: {
         title,
         content,
+        summary,
         ...(isPublic !== undefined && { isPublic }),
       },
     })
@@ -124,7 +130,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { postId: string } }
+  context: { params: Promise<{ postId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -135,7 +141,8 @@ export async function DELETE(
       )
     }
 
-    const postId = parseInt(params.postId)
+    const { postId: postIdStr } = await context.params
+    const postId = parseInt(postIdStr)
 
     if (isNaN(postId)) {
       return NextResponse.json(

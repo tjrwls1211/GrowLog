@@ -3,6 +3,37 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const name = searchParams.get('name')
+
+    if (name) {
+      const tags = await prisma.tag.findMany({
+        where: {
+          name: {
+            contains: name,
+          },
+        },
+      })
+      return NextResponse.json(tags, { status: 200 })
+    }
+
+    const tags = await prisma.tag.findMany({
+      orderBy: {
+        name: 'asc',
+      },
+    })
+
+    return NextResponse.json(tags, { status: 200 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
