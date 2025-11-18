@@ -1,6 +1,8 @@
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 interface MarkdownRendererProps {
   content: string
@@ -48,22 +50,29 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
             </blockquote>
           ),
           code: ({ className, children }) => {
+            const match = /language-(\w+)/.exec(className || '')
+            const language = match ? match[1] : ''
             const isInline = !className
+
             return isInline ? (
               <code className="bg-[var(--color-surface)] px-1.5 py-0.5 rounded text-sm font-mono text-[var(--primary)]">
                 {children}
               </code>
             ) : (
-              <code className={`block bg-[var(--color-surface)] p-4 rounded-lg overflow-x-auto font-mono text-sm ${className}`}>
-                {children}
-              </code>
+              <SyntaxHighlighter
+                style={oneDark}
+                language={language || 'text'}
+                PreTag="div"
+                className="rounded-lg my-4"
+                customStyle={{
+                  margin: 0,
+                  borderRadius: '0.5rem',
+                }}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
             )
           },
-          pre: ({ children }) => (
-            <pre className="bg-[var(--color-surface)] p-4 rounded-lg overflow-x-auto mb-4">
-              {children}
-            </pre>
-          ),
           a: ({ href, children }) => (
             <a
               href={href}
