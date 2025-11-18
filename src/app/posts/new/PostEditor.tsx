@@ -7,14 +7,22 @@ import MarkdownRenderer from '@/components/MarkdownRenderer'
 
 type PostEditorProps = {
   existingTags: string[]
+  initialData?: {
+    id: number
+    title: string
+    content: string
+    isPublic: boolean
+    tags: string[]
+  }
 }
 
-export default function PostEditor({ existingTags }: PostEditorProps) {
+export default function PostEditor({ existingTags, initialData }: PostEditorProps) {
   const router = useRouter()
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const isEditMode = !!initialData
+  const [title, setTitle] = useState(initialData?.title || '')
+  const [content, setContent] = useState(initialData?.content || '')
+  const [isPublic, setIsPublic] = useState(initialData?.isPublic || false)
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags || [])
   const [tagInput, setTagInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -58,9 +66,12 @@ export default function PostEditor({ existingTags }: PostEditorProps) {
         return
       }
 
-      // 1. 포스트 생성
-      const postResponse = await fetch('/api/posts', {
-        method: 'POST',
+      // 1. 포스트 생성 또는 수정
+      const url = isEditMode ? `/api/posts/${initialData.id}` : '/api/posts'
+      const method = isEditMode ? 'PUT' : 'POST'
+
+      const postResponse = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -73,7 +84,7 @@ export default function PostEditor({ existingTags }: PostEditorProps) {
 
       if (!postResponse.ok) {
         const data = await postResponse.json()
-        throw new Error(data.error || '포스트 생성에 실패했습니다.')
+        throw new Error(data.error || `포스트 ${isEditMode ? '수정' : '생성'}에 실패했습니다.`)
       }
 
       const post = await postResponse.json()
@@ -138,9 +149,9 @@ export default function PostEditor({ existingTags }: PostEditorProps) {
         <div className="p-8 space-y-6">
           {/* 헤더 */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold">새 글 쓰기</h1>
+            <h1 className="text-2xl font-semibold">{isEditMode ? '글 수정' : '새 글 쓰기'}</h1>
             <p className="text-sm text-[var(--color-foreground)]/70">
-              학습한 내용을 기록하고 공유해보세요.
+              {isEditMode ? '작성한 글을 수정하세요.' : '학습한 내용을 기록하고 공유해보세요.'}
             </p>
           </div>
 
@@ -260,7 +271,11 @@ export default function PostEditor({ existingTags }: PostEditorProps) {
               className="btn btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? '저장 중...' : '글 등록'}
+              {isSubmitting
+                ? '저장 중...'
+                : isEditMode
+                  ? '수정 완료'
+                  : '글 등록'}
             </button>
           </div>
         </div>
