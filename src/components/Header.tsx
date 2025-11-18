@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
 import Logo from "@/components/Logo";
+import LogoutButton from "@/components/LogoutButton";
 
 export default async function Header() {
   const session = await getSession().catch(() => null);
@@ -36,9 +37,7 @@ export default async function Header() {
               ) : (
                 <div className="w-8 h-8 rounded-full bg-black/10" />
               )}
-              <form action="/api/auth/signout" method="POST">
-                <button className="btn btn-outline btn--md">로그아웃</button>
-              </form>
+              <LogoutButton />
             </div>
           ) : (
             <Link
