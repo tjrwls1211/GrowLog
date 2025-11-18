@@ -79,7 +79,7 @@ describe('POST /api/reports', () => {
     expect(data).toHaveProperty('createdAt')
   })
 
-  it('포스트가 없어도 리포트를 생성할 수 있어야 한다', async () => {
+  it('포스트가 없으면 400 에러를 반환해야 한다', async () => {
     const testUser = await prisma.user.create({
       data: {
         email: 'test@example.com',
@@ -94,9 +94,9 @@ describe('POST /api/reports', () => {
     const response = await POST()
     const data = await response.json()
 
-    expect(response.status).toBe(201)
-    expect(data.postCount).toBe(0)
-    expect(data.content).toContain('이번 달에 작성된 포스트가 없습니다')
+    expect(response.status).toBe(400)
+    expect(data).toHaveProperty('error')
+    expect(data.error).toBe('이번 달에 작성된 포스트가 없습니다.')
   })
 
   it('로그인하지 않은 경우 401 에러를 반환해야 한다', async () => {

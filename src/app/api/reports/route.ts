@@ -65,7 +65,14 @@ export async function POST() {
         createdAt: 'desc',
       },
     })
-                  
+
+    if (posts.length === 0) {
+      return NextResponse.json(
+        { error: '이번 달에 작성된 포스트가 없습니다.' },
+        { status: 400 }
+      )
+    }
+
     const content = await generateMonthlyReport(posts)
 
     const report = await prisma.report.create({
