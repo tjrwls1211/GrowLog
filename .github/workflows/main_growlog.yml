@@ -24,6 +24,12 @@ jobs:
           node-version: '20.x'
 
       - name: npm install, generate Prisma client, and build
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          NEXTAUTH_SECRET: dummy-secret-for-build-only
+          GOOGLE_CLIENT_ID: dummy-client-id
+          GOOGLE_CLIENT_SECRET: dummy-client-secret
+          GEMINI_API_KEY: dummy-api-key
         run: |
           npm install
           npx prisma generate
