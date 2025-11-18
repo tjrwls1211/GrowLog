@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { postId: string; tagId: string } }
+  { params }: { params: Promise<{ postId: string; tagId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -16,8 +16,9 @@ export async function DELETE(
       )
     }
 
-    const postId = parseInt(params.postId)
-    const tagId = parseInt(params.tagId)
+    const { postId: postIdStr, tagId: tagIdStr } = await params
+    const postId = parseInt(postIdStr)
+    const tagId = parseInt(tagIdStr)
 
     if (isNaN(postId) || isNaN(tagId)) {
       return NextResponse.json(
