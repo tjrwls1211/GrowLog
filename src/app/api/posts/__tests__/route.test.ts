@@ -13,6 +13,12 @@ jest.mock('@/lib/auth', () => ({
   authOptions: {},
 }))
 
+jest.mock('@/lib/gemini', () => ({
+  generatePostSummary: jest
+    .fn()
+    .mockResolvedValue('AI가 생성한 요약입니다.'),
+}))
+
 afterEach(async () => {
   await prisma.post.deleteMany()
   await prisma.user.deleteMany()
@@ -51,6 +57,7 @@ describe('POST /api/posts', () => {
     expect(data).toHaveProperty('id')
     expect(data.title).toBe('테스트 제목')
     expect(data.content).toBe('테스트 내용입니다.')
+    expect(data.summary).toBe('AI가 생성한 요약입니다.')
     expect(data.userId).toBe(testUser.id)
     expect(data.isPublic).toBe(false)
     expect(data).toHaveProperty('createdAt')
