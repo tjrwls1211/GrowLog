@@ -183,7 +183,6 @@ export async function testConnection(): Promise<boolean> {
     })
     return !!response.text
   } catch (error) {
-    console.error('Error:', error)
     return false
   }
 }
