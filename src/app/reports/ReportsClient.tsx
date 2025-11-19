@@ -39,6 +39,7 @@ export default function ReportsClient({
     initialReports[0]?.id ?? null
   )
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
 
@@ -90,6 +91,40 @@ export default function ReportsClient({
       setError(message)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  async function handleDeleteReport(reportId: number) {
+    if (!confirm('정말로 이 리포트를 삭제하시겠어요?')) {
+      return
+    }
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? '리포트 삭제에 실패했어요.')
+      }
+
+      setReports((prev) => prev.filter((report) => report.id !== reportId))
+
+      if (selectedReportId === reportId) {
+        const remaining = reports.filter((r) => r.id !== reportId)
+        setSelectedReportId(remaining[0]?.id ?? null)
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '리포트를 삭제하는 중 오류가 발생했어요.'
+      setError(message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -225,13 +260,65 @@ export default function ReportsClient({
           <Card className="p-6" id="report-detail">
             {selectedReport ? (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-foreground)]/70">
-                  <span className="inline-flex items-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-                    {selectedReport.periodType === 'MONTHLY' ? '월간 리포트' : '주간 리포트'}
-                  </span>
-                  <span>{fullDateFormatter.format(new Date(selectedReport.createdAt))}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>글 {selectedReport.postCount}개 요약</span>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-foreground)]/70">
+                    <span className="inline-flex items-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+                      {selectedReport.periodType === 'MONTHLY' ? '월간 리포트' : '주간 리포트'}
+                    </span>
+                    <span>{fullDateFormatter.format(new Date(selectedReport.createdAt))}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>글 {selectedReport.postCount}개 요약</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReport(selectedReport.id)}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="리포트 삭제"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <svg
+                          className="h-3.5 w-3.5 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                        삭제 중...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        삭제
+                      </>
+                    )}
+                  </button>
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold">
