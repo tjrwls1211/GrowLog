@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { generateMonthlyReport } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { generateMonthlyReportStream } from '@/lib/gemini'
 
 export async function GET() {
   try {
@@ -24,7 +24,7 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(reports, { status: 200 })
+    return NextResponse.json({ reports }, { status: 200 })
   } catch (error) {
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다.' },
@@ -86,18 +86,69 @@ export async function POST() {
       )
     }
 
-    const content = await generateMonthlyReport(posts)
+    const userId = session.user.id
+    const postCount = posts.length
 
-    const report = await prisma.report.create({
-      data: {
-        userId: session.user.id,
-        content,
-        postCount: posts.length,
-        periodType: 'MONTHLY',
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        let fullContent = ''
+        let reportId: number | null = null
+
+        try {
+          const report = await prisma.report.create({
+            data: {
+              userId,
+              content: '',
+              postCount,
+              periodType: 'MONTHLY',
+              status: 'COMPLETED',
+            },
+          })
+          reportId = report.id
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'id', reportId })}\n\n`))
+
+          for await (const chunk of generateMonthlyReportStream(posts)) {
+            fullContent += chunk
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`))
+          }
+
+          if (reportId) {
+            await prisma.report.update({
+              where: { id: reportId },
+              data: { content: fullContent },
+            })
+          }
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', content: fullContent })}\n\n`))
+        } catch (error) {
+          console.error('[Reports] Streaming error:', error)
+
+          if (reportId) {
+            await prisma.report.update({
+              where: { id: reportId },
+              data: {
+                status: 'FAILED',
+                error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+              },
+            })
+          }
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: '리포트 생성에 실패했습니다.' })}\n\n`))
+        } finally {
+          controller.close()
+        }
       },
     })
 
-    return NextResponse.json(report, { status: 201 })
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    })
   } catch (error) {
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다.' },

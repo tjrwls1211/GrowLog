@@ -40,6 +40,8 @@ export default async function ReportsPage() {
     postCount: report.postCount,
     periodType: report.periodType,
     createdAt: report.createdAt.toISOString(),
+    status: report.status,
+    error: report.error,
   }))
 
   const now = new Date()
