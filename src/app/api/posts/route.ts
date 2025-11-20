@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { generatePostSummary } from '@/lib/gemini'
+import { sendSummaryJob } from '@/lib/azure-queue'
 
 export async function GET() {
   try {
@@ -58,17 +58,22 @@ export async function POST(request: Request) {
       )
     }
 
-    const summary = await generatePostSummary(title, content)
-
     const post = await prisma.post.create({
       data: {
         title,
         content,
-        summary,
+        summary: null,
+        summaryStatus: 'PENDING',
         isPublic,
         userId: session.user.id,
       },
     })
+
+    try {
+      await sendSummaryJob(post.id)
+    } catch (queueError) {
+      console.error('요약 실패')
+    }
 
     return NextResponse.json(post, { status: 201 })
   } catch (error) {

@@ -16,6 +16,14 @@ enum PeriodType {
   MONTHLY
 }
 
+// 비동기 작업 상태 enum
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 // User (Google OAuth 사용자)
 model User {
   id            Int       @id @default(autoincrement())
@@ -68,14 +76,15 @@ model Session {
 
 // Post (직접 작성 글)
 model Post {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  title     String   @db.VarChar(255)
-  content   String   @db.Text
-  summary   String?  @db.Text
-  isPublic  Boolean  @default(false)
-  createdAt DateTime @default(now()) @db.Timestamp()
-  updatedAt DateTime @updatedAt @db.Timestamp()
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  title         String    @db.VarChar(255)
+  content       String    @db.Text
+  summary       String?   @db.Text
+  summaryStatus JobStatus @default(PENDING)
+  isPublic      Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @db.Timestamp()
+  updatedAt     DateTime  @updatedAt @db.Timestamp()
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   postTags PostTag[]
@@ -113,7 +122,10 @@ model Report {
   content    String     @db.Text
   postCount  Int
   periodType PeriodType
+  status     JobStatus  @default(PENDING)
+  error      String?    @db.Text
   createdAt  DateTime   @default(now()) @db.Timestamp()
+  updatedAt  DateTime   @updatedAt @db.Timestamp()
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
