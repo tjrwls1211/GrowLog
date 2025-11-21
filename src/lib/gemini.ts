@@ -65,6 +65,39 @@ export async function generateMonthlyReport(posts: Post[]): Promise<string> {
   }
 }
 
+export async function* generateMonthlyReportStream(posts: Post[]): AsyncGenerator<string> {
+  if (posts.length === 0) {
+    yield '이번 달에 작성된 포스트가 없습니다. 학습을 시작해보세요!'
+    return
+  }
+
+  const tagStats = calculateTagStats(posts)
+  const prompt = buildPrompt(posts, tagStats)
+
+  try {
+    const ai = getGeminiClient()
+
+    const streamResponse = await ai.models.generateContentStream({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
+    })
+
+    for await (const chunk of streamResponse) {
+      if (chunk.text) {
+        yield chunk.text
+      }
+    }
+  } catch (error) {
+    console.error('스트리밍 리포트 생성 실패:', {
+      error: error instanceof Error ? error.message : String(error),
+      postCount: posts.length,
+      tagCount: tagStats.length,
+    })
+
+    yield buildFallbackReport(posts, tagStats)
+  }
+}
+
 function calculateTagStats(posts: Post[]): TagStat[] {
   const tagCount: Record<string, number> = {}
 

@@ -39,8 +39,12 @@ export default function ReportsClient({
     initialReports[0]?.id ?? null
   )
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
+
+  const [streamingContent, setStreamingContent] = useState<string>('')
+  const [isStreaming, setIsStreaming] = useState(false)
 
   const selectedReport = useMemo<ReportSnapshot | null>(() => {
     if (!reports.length) return null
@@ -68,6 +72,8 @@ export default function ReportsClient({
 
   async function handleGenerateReport() {
     setIsGenerating(true)
+    setIsStreaming(true)
+    setStreamingContent('')
     setError(null)
 
     try {
@@ -75,21 +81,114 @@ export default function ReportsClient({
         method: 'POST',
       })
 
-      const payload = await response.json()
-
       if (!response.ok) {
+        const payload = await response.json()
         throw new Error(payload?.error ?? 'AI 리포트를 생성할 수 없었어요.')
       }
 
-      const newReport = normalizeReport(payload)
-      setReports((prev) => [newReport, ...prev])
-      setSelectedReportId(newReport.id)
+      if (!response.body) {
+        throw new Error('스트리밍 응답을 받을 수 없습니다.')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulatedContent = ''
+      let newReportId: number | null = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.type === 'id') {
+              newReportId = data.reportId
+              // 새 리포트를 리스트에 추가
+              if (newReportId) {
+                const newReport: ReportSnapshot = {
+                  id: newReportId,
+                  content: '',
+                  postCount: monthlyPostCount,
+                  periodType: 'MONTHLY',
+                  createdAt: new Date().toISOString(),
+                  status: 'COMPLETED',
+                }
+                setReports((prev) => [newReport, ...prev])
+                setSelectedReportId(newReportId)
+              }
+            } else if (data.type === 'chunk') {
+              accumulatedContent += data.content
+              setStreamingContent(accumulatedContent)
+
+              // 리포트 리스트 업데이트
+              if (newReportId) {
+                setReports((prev) =>
+                  prev.map((r) =>
+                    r.id === newReportId ? { ...r, content: accumulatedContent } : r
+                  )
+                )
+              }
+            } else if (data.type === 'done') {
+              setStreamingContent(data.content)
+              if (newReportId) {
+                setReports((prev) =>
+                  prev.map((r) =>
+                    r.id === newReportId ? { ...r, content: data.content } : r
+                  )
+                )
+              }
+            } else if (data.type === 'error') {
+              throw new Error(data.error)
+            }
+          }
+        }
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : '리포트를 생성하는 중 오류가 발생했어요.'
       setError(message)
     } finally {
       setIsGenerating(false)
+      setIsStreaming(false)
+    }
+  }
+
+  async function handleDeleteReport(reportId: number) {
+    if (!confirm('정말로 이 리포트를 삭제하시겠어요?')) {
+      return
+    }
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? '리포트 삭제에 실패했어요.')
+      }
+
+      setReports((prev) => prev.filter((report) => report.id !== reportId))
+
+      if (selectedReportId === reportId) {
+        const remaining = reports.filter((r) => r.id !== reportId)
+        setSelectedReportId(remaining[0]?.id ?? null)
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '리포트를 삭제하는 중 오류가 발생했어요.'
+      setError(message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -225,13 +324,65 @@ export default function ReportsClient({
           <Card className="p-6" id="report-detail">
             {selectedReport ? (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-foreground)]/70">
-                  <span className="inline-flex items-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-                    {selectedReport.periodType === 'MONTHLY' ? '월간 리포트' : '주간 리포트'}
-                  </span>
-                  <span>{fullDateFormatter.format(new Date(selectedReport.createdAt))}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>글 {selectedReport.postCount}개 요약</span>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-foreground)]/70">
+                    <span className="inline-flex items-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+                      {selectedReport.periodType === 'MONTHLY' ? '월간 리포트' : '주간 리포트'}
+                    </span>
+                    <span>{fullDateFormatter.format(new Date(selectedReport.createdAt))}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>글 {selectedReport.postCount}개 요약</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReport(selectedReport.id)}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="리포트 삭제"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <svg
+                          className="h-3.5 w-3.5 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                        삭제 중...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        삭제
+                      </>
+                    )}
+                  </button>
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold">
@@ -242,9 +393,42 @@ export default function ReportsClient({
                   </p>
                 </div>
 
-                <div className="prose prose-slate max-w-none mt-6 [&>*]:mb-4 [&>h1]:mb-4 [&>h2]:mb-3 [&>h3]:mb-3 [&>p]:leading-relaxed [&>ul]:space-y-2 [&>ol]:space-y-2">
-                  <ReactMarkdown>{selectedReport.content}</ReactMarkdown>
-                </div>
+                {isStreaming && selectedReport.id === reports[0]?.id ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <svg
+                        className="h-5 w-5 animate-spin text-[var(--primary)]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                      <p className="text-sm font-semibold text-[var(--primary)]">
+                        AI가 리포트를 생성하고 있어요...
+                      </p>
+                    </div>
+                    <div className="prose prose-slate max-w-none mt-6 [&>*]:mb-4 [&>h1]:mb-4 [&>h2]:mb-3 [&>h3]:mb-3 [&>p]:leading-relaxed [&>ul]:space-y-2 [&>ol]:space-y-2">
+                      <ReactMarkdown>{streamingContent || selectedReport.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="prose prose-slate max-w-none mt-6 [&>*]:mb-4 [&>h1]:mb-4 [&>h2]:mb-3 [&>h3]:mb-3 [&>p]:leading-relaxed [&>ul]:space-y-2 [&>ol]:space-y-2">
+                    <ReactMarkdown>{selectedReport.content}</ReactMarkdown>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-center py-16">
@@ -259,19 +443,6 @@ export default function ReportsClient({
       </div>
     </div>
   )
-}
-
-function normalizeReport(report: any): ReportSnapshot {
-  return {
-    id: Number(report.id),
-    content: String(report.content ?? ''),
-    postCount: Number(report.postCount ?? 0),
-    periodType: report.periodType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY',
-    createdAt:
-      typeof report.createdAt === 'string'
-        ? report.createdAt
-        : new Date(report.createdAt).toISOString(),
-  }
 }
 
 function formatRelativeTime(isoDate: string) {

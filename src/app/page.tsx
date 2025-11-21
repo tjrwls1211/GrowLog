@@ -35,8 +35,10 @@ function formatRelativeTime(date: Date) {
 }
 
 function getPostPreview(post: RecentPost) {
-  const source = post.summary ?? post.content;
-  const condensed = source.replace(/\s+/g, " ").trim();
+  if (!post.summary) {
+    return "요약 생성 중...";
+  }
+  const condensed = post.summary.replace(/\s+/g, " ").trim();
   return condensed.length > 0 ? condensed : "기록된 내용이 없습니다.";
 }
 

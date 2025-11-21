@@ -4,5 +4,7 @@ export type ReportSnapshot = {
   postCount: number
   periodType: 'WEEKLY' | 'MONTHLY'
   createdAt: string
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  error?: string | null
 }
 

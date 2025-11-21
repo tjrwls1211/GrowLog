@@ -84,9 +84,13 @@ export default async function PostsPage() {
                           </span>
                         )}
                       </div>
-                      {post.summary && (
+                      {post.summary ? (
                         <p className="text-[var(--color-foreground)]/70 text-sm line-clamp-2 mb-3">
                           {post.summary}
+                        </p>
+                      ) : (
+                        <p className="text-[var(--color-foreground)]/50 text-sm mb-3">
+                          요약 생성 중...
                         </p>
                       )}
                     </div>
