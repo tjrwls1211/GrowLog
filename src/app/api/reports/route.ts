@@ -102,7 +102,7 @@ export async function POST() {
               content: '',
               postCount,
               periodType: 'MONTHLY',
-              status: 'COMPLETED',
+              status: 'PROCESSING',
             },
           })
           reportId = report.id
@@ -117,7 +117,10 @@ export async function POST() {
           if (reportId) {
             await prisma.report.update({
               where: { id: reportId },
-              data: { content: fullContent },
+              data: {
+                content: fullContent,
+                status: 'COMPLETED',
+              },
             })
           }
 
