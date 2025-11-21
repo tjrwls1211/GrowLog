@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { sendSummaryJob } from '@/lib/azure-queue'
+import { sendSummaryJobWithRetry } from '@/lib/azure-queue'
 
 export async function GET() {
   try {
@@ -70,9 +70,13 @@ export async function POST(request: Request) {
     })
 
     try {
-      await sendSummaryJob(post.id)
+      await sendSummaryJobWithRetry(post.id)
     } catch (queueError) {
-      console.error('요약 실패')
+      console.error('[Posts] Queue 전송 실패:', queueError)
+      await prisma.post.update({
+        where: { id: post.id },
+        data: { summaryStatus: 'FAILED' },
+      })
     }
 
     return NextResponse.json(post, { status: 201 })

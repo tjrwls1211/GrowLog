@@ -13,10 +13,8 @@ jest.mock('@/lib/auth', () => ({
   authOptions: {},
 }))
 
-jest.mock('@/lib/gemini', () => ({
-  generatePostSummary: jest
-    .fn()
-    .mockResolvedValue('AI가 생성한 요약입니다.'),
+jest.mock('@/lib/azure-queue', () => ({
+  sendSummaryJobWithRetry: jest.fn().mockResolvedValue(undefined),
 }))
 
 afterEach(async () => {
@@ -57,7 +55,8 @@ describe('POST /api/posts', () => {
     expect(data).toHaveProperty('id')
     expect(data.title).toBe('테스트 제목')
     expect(data.content).toBe('테스트 내용입니다.')
-    expect(data.summary).toBe('AI가 생성한 요약입니다.')
+    expect(data.summary).toBeNull()
+    expect(data.summaryStatus).toBe('PENDING')
     expect(data.userId).toBe(testUser.id)
     expect(data.isPublic).toBe(false)
     expect(data).toHaveProperty('createdAt')
@@ -167,6 +166,43 @@ describe('POST /api/posts', () => {
 
     expect(response.status).toBe(201)
     expect(data.isPublic).toBe(false)
+  })
+
+  it('Queue 전송 실패 시 summaryStatus를 FAILED로 업데이트해야 한다', async () => {
+    const { sendSummaryJobWithRetry } = require('@/lib/azure-queue')
+    sendSummaryJobWithRetry.mockRejectedValueOnce(new Error('Queue error'))
+
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+        name: '테스트 유저',
+      },
+    })
+
+    ;(getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: testUser.id, email: testUser.email },
+    })
+
+    const request = new Request('http://localhost:3000/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '테스트 제목',
+        content: '테스트 내용',
+      }),
+    })
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(data).toHaveProperty('id')
+
+    const updatedPost = await prisma.post.findUnique({
+      where: { id: data.id },
+    })
+
+    expect(updatedPost?.summaryStatus).toBe('FAILED')
   })
 })
 
