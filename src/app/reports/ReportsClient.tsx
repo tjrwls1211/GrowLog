@@ -94,56 +94,62 @@ export default function ReportsClient({
       const decoder = new TextDecoder()
       let accumulatedContent = ''
       let newReportId: number | null = null
+      let buffer = '' 
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
         const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
+        buffer += chunk
+        const lines = buffer.split('\n')
+
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6))
+            try {
+              const data = JSON.parse(line.slice(6))
 
-            if (data.type === 'id') {
-              newReportId = data.reportId
-              // 새 리포트를 리스트에 추가
-              if (newReportId) {
-                const newReport: ReportSnapshot = {
-                  id: newReportId,
-                  content: '',
-                  postCount: monthlyPostCount,
-                  periodType: 'MONTHLY',
-                  createdAt: new Date().toISOString(),
-                  status: 'COMPLETED',
+              if (data.type === 'id') {
+                newReportId = data.reportId
+                if (newReportId) {
+                  const newReport: ReportSnapshot = {
+                    id: newReportId,
+                    content: '',
+                    postCount: monthlyPostCount,
+                    periodType: 'MONTHLY',
+                    createdAt: new Date().toISOString(),
+                    status: 'COMPLETED',
+                  }
+                  setReports((prev) => [newReport, ...prev])
+                  setSelectedReportId(newReportId)
                 }
-                setReports((prev) => [newReport, ...prev])
-                setSelectedReportId(newReportId)
-              }
-            } else if (data.type === 'chunk') {
-              accumulatedContent += data.content
-              setStreamingContent(accumulatedContent)
+              } else if (data.type === 'chunk') {
+                accumulatedContent += data.content
+                setStreamingContent(accumulatedContent)
 
-              // 리포트 리스트 업데이트
-              if (newReportId) {
-                setReports((prev) =>
-                  prev.map((r) =>
-                    r.id === newReportId ? { ...r, content: accumulatedContent } : r
+                if (newReportId) {
+                  setReports((prev) =>
+                    prev.map((r) =>
+                      r.id === newReportId ? { ...r, content: accumulatedContent } : r
+                    )
                   )
-                )
-              }
-            } else if (data.type === 'done') {
-              setStreamingContent(data.content)
-              if (newReportId) {
-                setReports((prev) =>
-                  prev.map((r) =>
-                    r.id === newReportId ? { ...r, content: data.content } : r
+                }
+              } else if (data.type === 'done') {
+                setStreamingContent(data.content)
+                if (newReportId) {
+                  setReports((prev) =>
+                    prev.map((r) =>
+                      r.id === newReportId ? { ...r, content: data.content } : r
+                    )
                   )
-                )
+                }
+              } else if (data.type === 'error') {
+                throw new Error(data.error)
               }
-            } else if (data.type === 'error') {
-              throw new Error(data.error)
+            } catch (parseError) {
+              console.warn('JSON parse error:', line.slice(6))
             }
           }
         }
