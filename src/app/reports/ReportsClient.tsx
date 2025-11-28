@@ -76,6 +76,10 @@ export default function ReportsClient({
     setStreamingContent('')
     setError(null)
 
+    const startTime = performance.now()
+    let firstIdTime: number | null = null
+    let firstChunkTime: number | null = null
+
     try {
       const response = await fetch('/api/reports', {
         method: 'POST',
@@ -113,6 +117,10 @@ export default function ReportsClient({
 
               if (data.type === 'id') {
                 newReportId = data.reportId
+                if (!firstIdTime) {
+                  firstIdTime = performance.now()
+                  console.log(`[Report Timing] 서버 응답 (ID 수신): ${(firstIdTime - startTime).toFixed(0)}ms`)
+                }
                 if (newReportId) {
                   const newReport: ReportSnapshot = {
                     id: newReportId,
@@ -126,6 +134,11 @@ export default function ReportsClient({
                   setSelectedReportId(newReportId)
                 }
               } else if (data.type === 'chunk') {
+                if (!firstChunkTime) {
+                  firstChunkTime = performance.now()
+                  console.log(`[Report Timing] 첫 번째 AI 콘텐츠 청크 도착: ${(firstChunkTime - startTime).toFixed(0)}ms`)
+                  console.log(`[Report Timing] ID 수신 후 첫 청크까지: ${firstIdTime ? (firstChunkTime - firstIdTime).toFixed(0) : 'N/A'}ms`)
+                }
                 accumulatedContent += data.content
                 setStreamingContent(accumulatedContent)
 
@@ -137,6 +150,9 @@ export default function ReportsClient({
                   )
                 }
               } else if (data.type === 'done') {
+                const doneTime = performance.now()
+                console.log(`[Report Timing] 스트리밍 완료: ${(doneTime - startTime).toFixed(0)}ms`)
+                console.log(`[Report Timing] 첫 청크 후 완료까지: ${firstChunkTime ? (doneTime - firstChunkTime).toFixed(0) : 'N/A'}ms`)
                 setStreamingContent(data.content)
                 if (newReportId) {
                   setReports((prev) =>

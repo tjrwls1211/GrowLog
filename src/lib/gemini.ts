@@ -78,7 +78,7 @@ export async function* generateMonthlyReportStream(posts: Post[]): AsyncGenerato
     const ai = getGeminiClient()
 
     const streamResponse = await ai.models.generateContentStream({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     })
 
