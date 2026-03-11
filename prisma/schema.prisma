@@ -80,9 +80,10 @@ model Post {
   userId        Int
   title         String    @db.VarChar(255)
   content       String    @db.Text
-  summary       String?   @db.Text
-  summaryStatus JobStatus @default(PENDING)
-  isPublic      Boolean   @default(false)
+  summary              String?   @db.Text
+  summaryStatus        JobStatus @default(PENDING)
+  processingStartedAt  DateTime? @db.Timestamp()
+  isPublic             Boolean   @default(false)
   createdAt     DateTime  @default(now()) @db.Timestamp()
   updatedAt     DateTime  @updatedAt @db.Timestamp()
 

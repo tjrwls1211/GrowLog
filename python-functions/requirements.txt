@@ -5,3 +5,4 @@
 azure-functions
 psycopg2-binary
 google-generativeai
+tenacity
